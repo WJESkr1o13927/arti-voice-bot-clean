@@ -6,3 +6,4 @@ SpeechRecognition
 gtts
 pydub
 ffmpeg-python
+python-dotenv
