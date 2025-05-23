@@ -8,6 +8,7 @@ import openai
 import speech_recognition as sr
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
+os.makedirs("temp", exist_ok=True)
 
 app = FastAPI()
 recognizer = sr.Recognizer()
