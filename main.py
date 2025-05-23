@@ -6,20 +6,18 @@ from fastapi.responses import JSONResponse, FileResponse
 from pydub import AudioSegment
 from gtts import gTTS
 import speech_recognition as sr
-import openai
-from dotenv import load_dotenv
+from openai import OpenAI
 
-# Load environment variables from .env
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# Use API key from environment (Render supports this)
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Create temp directory if it doesn't exist
+# Create temp dir if needed
 os.makedirs("temp", exist_ok=True)
 
 app = FastAPI()
 recognizer = sr.Recognizer()
 
-# CORS settings
+# CORS setup
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,15 +32,14 @@ async def chat(audio: UploadFile = File(...)):
     wav_path = webm_path.replace(".webm", ".wav")
 
     try:
-        # Save uploaded audio
+        # Save incoming audio
         with open(webm_path, "wb") as f:
             f.write(await audio.read())
         print(f"🎧 Received audio: {audio.filename}")
 
         # Convert to WAV
         audio_segment = AudioSegment.from_file(webm_path, format="webm")
-        audio_segment = audio_segment.set_channels(1).set_frame_rate(16000)
-        audio_segment.export(wav_path, format="wav")
+        audio_segment.set_channels(1).set_frame_rate(16000).export(wav_path, format="wav")
 
         # Transcribe
         with sr.AudioFile(wav_path) as source:
@@ -50,21 +47,21 @@ async def chat(audio: UploadFile = File(...)):
             text = recognizer.recognize_google(audio_data)
         print(f"🗣️ Transcribed: {text}")
 
-        # Get GPT reply
-        response = openai.ChatCompletion.create(
+        # GPT-4 completion (new SDK)
+        chat_response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are helpful"},
-                {"role": "user", "content": text},
+                {"role": "system", "content": "You are helpful."},
+                {"role": "user", "content": text}
             ]
         )
-        reply = response.choices[0].message.content.strip()
+        reply = chat_response.choices[0].message.content.strip()
         print(f"💬 GPT Reply: {reply}")
 
         # Text to speech
         mp3_filename = f"{uuid.uuid4().hex}.mp3"
-        tts_path = os.path.join("temp", mp3_filename)
-        gTTS(reply).save(tts_path)
+        mp3_path = os.path.join("temp", mp3_filename)
+        gTTS(reply).save(mp3_path)
 
         return {"reply": reply, "audio_url": f"/audio/{mp3_filename}"}
 
