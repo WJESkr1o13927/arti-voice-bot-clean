@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Voice Chatbot</title>
+  <style>
+    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+    button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+    #status { margin: 10px 0; color: #666; }
+    #response { margin: 20px 0; padding: 15px; border: 1px solid #ddd; min-height: 50px; }
+    audio { width: 100%; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Voice Chatbot</h1>
+  <button id="recordBtn">Start Recording</button>
+  <div id="status">Ready</div>
+  <div id="response"></div>
+  <audio id="audioPlayer" controls></audio>
+
+  <script>
+    const recordBtn = document.getElementById('recordBtn');
+    const statusDiv = document.getElementById('status');
+    const responseDiv = document.getElementById('response');
+    const audioPlayer = document.getElementById('audioPlayer');
+
+    let mediaRecorder;
+    let audioChunks = [];
+
+    recordBtn.addEventListener('click', async () => {
+      if (mediaRecorder?.state === 'recording') {
+        mediaRecorder.stop();
+        recordBtn.textContent = 'Start Recording';
+        statusDiv.textContent = 'Processing...';
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => {
+          if (e.data.size > 0) audioChunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+
+          try {
+            const response = await fetch('http://localhost:8000/chat', {
+              method: 'POST',
+              body: formData
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+            const result = await response.json();
+
+            if (result.reply) {
+              responseDiv.textContent = result.reply;
+              statusDiv.textContent = '✅ Done';
+              audioPlayer.src = "http://localhost:8000" + result.audio_url;
+              audioPlayer.load();
+              audioPlayer.play().catch(() => {
+                statusDiv.textContent += ' (click play above)';
+              });
+            } else {
+              responseDiv.textContent = "❌ No reply received";
+              statusDiv.textContent = "❌ GPT error or server failed.";
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            statusDiv.textContent = 'Error: ' + error.message;
+          }
+        };
+
+        mediaRecorder.start();
+        recordBtn.textContent = 'Stop Recording';
+        statusDiv.textContent = 'Recording...';
+      } catch (error) {
+        console.error('Error accessing microphone:', error);
+        statusDiv.textContent = 'Microphone access denied';
+      }
+    });
+  </script>
+</body>
+</html>
