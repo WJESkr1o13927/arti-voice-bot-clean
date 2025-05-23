@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-python-multipart
-openai
-SpeechRecognition
-gtts
-pydub

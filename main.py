@@ -2,7 +2,7 @@ import uuid, os
 from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
-from pydub import AudioSegment
+import ffmpeg
 from gtts import gTTS
 import openai
 import speech_recognition as sr
@@ -30,9 +30,17 @@ async def chat(audio: UploadFile = File(...)):
 
     try:
         print(f"🎧 Received audio: {audio.filename}")
-        audio_segment = AudioSegment.from_file(webm_path, format="webm")
-        audio_segment = audio_segment.set_channels(1).set_frame_rate(16000)
-        audio_segment.export(wav_path, format="wav")
+        def convert_webm_to_wav(webm_path, wav_path):
+            try:
+                (
+                    ffmpeg
+                    .input(webm_path)
+                    .output(wav_path, ac=1, ar='16000')
+                    .run(overwrite_output=True)
+                )
+            except ffmpeg.Error as e:
+                print("❌ ffmpeg error:", e.stderr.decode())
+                raise
 
         with sr.AudioFile(wav_path) as source:
             audio_data = recognizer.record(source)
