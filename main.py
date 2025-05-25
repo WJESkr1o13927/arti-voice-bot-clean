@@ -1,7 +1,6 @@
-# backend/main.py
 import os
 import uuid
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydub import AudioSegment
@@ -17,14 +16,20 @@ recognizer = sr.Recognizer()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://extraordinary-stroopwafel-a420e4.netlify.app","http://localhost:5500"],
+    allow_origins=["https://extraordinary-stroopwafel-a420e4.netlify.app", "http://localhost:5500"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# 🧠 In-memory session memory
+session_memory = {}
+
 @app.post("/chat")
-async def chat(audio: UploadFile = File(...)):
+async def chat(request: Request, audio: UploadFile = File(...)):
+    session_id = request.client.host
+    session_memory.setdefault(session_id, [{"role": "system", "content": "You are helpful."}])
+
     webm_path = f"temp/{uuid.uuid4().hex}.webm"
     wav_path = webm_path.replace(".webm", ".wav")
 
@@ -43,22 +48,23 @@ async def chat(audio: UploadFile = File(...)):
             audio_segment.set_channels(1).set_frame_rate(16000).export(wav_path, format="wav")
         except Exception as e:
             print("❌ Pydub/FFmpeg error:", e)
-            return JSONResponse(status_code=500, content={"error": "Could not process audio format. Try again or use a different browser."})
+            return JSONResponse(status_code=500, content={"error": "Could not process audio format."})
 
         with sr.AudioFile(wav_path) as source:
             audio_data = recognizer.record(source)
             text = recognizer.recognize_google(audio_data)
         print(f"🗣️ Transcribed: {text}")
 
+        session_memory[session_id].append({"role": "user", "content": text})
+
         chat_response = client.chat.completions.create(
             model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are helpful."},
-                {"role": "user", "content": text}
-            ]
+            messages=session_memory[session_id]
         )
         reply = chat_response.choices[0].message.content.strip()
         print(f"💬 GPT Reply: {reply}")
+
+        session_memory[session_id].append({"role": "assistant", "content": reply})
 
         mp3_filename = f"{uuid.uuid4().hex}.mp3"
         mp3_path = os.path.join("temp", mp3_filename)
