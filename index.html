@@ -61,7 +61,7 @@
             if (result.reply) {
               responseDiv.textContent = result.reply;
               statusDiv.textContent = '✅ Done';
-              audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${data.audio_url}`;
+              audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
               audioPlayer.load();
               audioPlayer.play().catch(() => {
                 statusDiv.textContent += ' (click play above)';

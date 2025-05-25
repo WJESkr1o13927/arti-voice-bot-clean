@@ -70,6 +70,7 @@ async def chat(audio: UploadFile = File(...)):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
     finally:
+        # Clean up only intermediate files
         for f in [webm_path, wav_path]:
             if os.path.exists(f):
                 os.remove(f)
