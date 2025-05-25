@@ -17,7 +17,7 @@ recognizer = sr.Recognizer()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://extraordinary-stroopwafel-a420e4.netlify.app","http://localhost:5500"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
