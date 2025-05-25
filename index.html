@@ -27,6 +27,39 @@
     let mediaRecorder;
     let audioChunks = [];
 
+    async function sendAudio(formData, retries = 1) {
+      try {
+        const response = await fetch('https://arti-voice-bot-clean.onrender.com/chat', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
+        const result = await response.json();
+
+        if (result.reply) {
+          responseDiv.textContent = result.reply;
+          statusDiv.textContent = '✅ Done';
+          audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
+          audioPlayer.load();
+          audioPlayer.play().catch(() => {
+            statusDiv.textContent += ' (click play above)';
+          });
+        } else {
+          responseDiv.textContent = "❌ No reply received";
+          statusDiv.textContent = "❌ GPT error or server failed.";
+        }
+      } catch (error) {
+        if (retries > 0) {
+          console.warn('Retrying after error:', error.message);
+          setTimeout(() => sendAudio(formData, retries - 1), 1000);
+        } else {
+          console.error('Final error:', error);
+          statusDiv.textContent = '❌ Failed after retry: ' + error.message;
+        }
+      }
+    }
+
     recordBtn.addEventListener('click', async () => {
       if (mediaRecorder?.state === 'recording') {
         mediaRecorder.stop();
@@ -48,40 +81,15 @@
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           const formData = new FormData();
           formData.append('audio', audioBlob, 'recording.webm');
-
-          try {
-            const response = await fetch('https://arti-voice-bot-clean.onrender.com/chat', {
-              method: 'POST',
-              body: formData
-            });
-
-            if (!response.ok) throw new Error('Network response was not ok');
-            const result = await response.json();
-
-            if (result.reply) {
-              responseDiv.textContent = result.reply;
-              statusDiv.textContent = '✅ Done';
-              audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
-              audioPlayer.load();
-              audioPlayer.play().catch(() => {
-                statusDiv.textContent += ' (click play above)';
-              });
-            } else {
-              responseDiv.textContent = "❌ No reply received";
-              statusDiv.textContent = "❌ GPT error or server failed.";
-            }
-          } catch (error) {
-            console.error('Error:', error);
-            statusDiv.textContent = 'Error: ' + error.message;
-          }
+          sendAudio(formData, 1);
         };
 
         mediaRecorder.start();
         recordBtn.textContent = 'Stop Recording';
-        statusDiv.textContent = 'Recording...';
+        statusDiv.textContent = '🎙️ Recording...';
       } catch (error) {
-        console.error('Error accessing microphone:', error);
-        statusDiv.textContent = 'Microphone access denied';
+        console.error('Mic error:', error);
+        statusDiv.textContent = '❌ Microphone access denied';
       }
     });
   </script>
