@@ -1,6 +1,6 @@
 import os
 import uuid
-from fastapi import FastAPI, UploadFile, File, Request
+from fastapi import FastAPI, UploadFile, File, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
 from pydub import AudioSegment
@@ -22,11 +22,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 🧠 In-memory session memory
 session_memory = {}
 
 @app.post("/chat")
-async def chat(request: Request, audio: UploadFile = File(...)):
+async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form("en")):
     session_id = request.client.host
     session_memory.setdefault(session_id, [{"role": "system", "content": "You are helpful."}])
 
@@ -52,7 +51,8 @@ async def chat(request: Request, audio: UploadFile = File(...)):
 
         with sr.AudioFile(wav_path) as source:
             audio_data = recognizer.record(source)
-            text = recognizer.recognize_google(audio_data)
+            google_lang_code = "hi-IN" if lang == "hi" else "en-US"
+            text = recognizer.recognize_google(audio_data, language=google_lang_code)
         print(f"🗣️ Transcribed: {text}")
 
         session_memory[session_id].append({"role": "user", "content": text})
@@ -68,7 +68,7 @@ async def chat(request: Request, audio: UploadFile = File(...)):
 
         mp3_filename = f"{uuid.uuid4().hex}.mp3"
         mp3_path = os.path.join("temp", mp3_filename)
-        gTTS(reply).save(mp3_path)
+        gTTS(reply, lang=lang).save(mp3_path)
 
         return {"reply": reply, "audio_url": f"/audio/{mp3_filename}"}
 

@@ -5,7 +5,7 @@
   <title>Voice Chatbot</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-    button { padding: 10px 15px; font-size: 16px; cursor: pointer; }
+    button, select { padding: 10px 15px; font-size: 16px; cursor: pointer; margin-top: 10px; }
     #status { margin: 10px 0; color: #666; }
     #response { margin: 20px 0; padding: 15px; border: 1px solid #ddd; min-height: 50px; }
     audio { width: 100%; margin-top: 10px; }
@@ -13,6 +13,10 @@
 </head>
 <body>
   <h1>Voice Chatbot</h1>
+  <select id="language">
+    <option value="en">English</option>
+    <option value="hi">Hindi</option>
+  </select>
   <button id="recordBtn">Start Recording</button>
   <div id="status">Ready</div>
   <div id="response"></div>
@@ -23,6 +27,7 @@
     const statusDiv = document.getElementById('status');
     const responseDiv = document.getElementById('response');
     const audioPlayer = document.getElementById('audioPlayer');
+    const languageSelector = document.getElementById('language');
 
     let mediaRecorder;
     let audioChunks = [];
@@ -81,6 +86,7 @@
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           const formData = new FormData();
           formData.append('audio', audioBlob, 'recording.webm');
+          formData.append('lang', languageSelector.value); // Send selected language
           sendAudio(formData, 1);
         };
 
