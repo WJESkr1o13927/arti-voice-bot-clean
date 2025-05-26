@@ -32,7 +32,7 @@
     let mediaRecorder;
     let audioChunks = [];
 
-    async function sendAudio(formData, retries = 1) {
+    async function sendAudio(formData, retries = 2) {
       try {
         const response = await fetch('https://arti-voice-bot-clean.onrender.com/chat', {
           method: 'POST',
@@ -86,8 +86,8 @@
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           const formData = new FormData();
           formData.append('audio', audioBlob, 'recording.webm');
-          formData.append('lang', languageSelector.value); // Send selected language
-          sendAudio(formData, 1);
+          formData.append('lang', languageSelector.value || 'en');  // always append lang
+          sendAudio(formData, 2);
         };
 
         mediaRecorder.start();
@@ -95,7 +95,7 @@
         statusDiv.textContent = '🎙️ Recording...';
       } catch (error) {
         console.error('Mic error:', error);
-        statusDiv.textContent = '❌ Microphone access denied';
+        statusDiv.textContent = '❌ Microphone access denied or unsupported device.';
       }
     });
   </script>
