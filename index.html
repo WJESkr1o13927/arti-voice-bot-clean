@@ -91,6 +91,11 @@
         };
 
         mediaRecorder.start();
+        setTimeout(() => {
+          if (mediaRecorder.state === 'recording') {
+            mediaRecorder.stop();
+          }
+        }, 2500); // 2.5 seconds minimum recording time
         recordBtn.textContent = 'Stop Recording';
         statusDiv.textContent = '🎙️ Recording...';
       } catch (error) {
