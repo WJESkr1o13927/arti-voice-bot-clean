@@ -3,3 +3,6 @@ temp/*
 __pycache__/
 *.pyc
 .DS_Store
+
+# Local Netlify folder
+.netlify
