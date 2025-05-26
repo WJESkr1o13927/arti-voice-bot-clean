@@ -26,6 +26,7 @@ session_memory = {}
 
 @app.post("/chat")
 async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form("en")):
+    print(f"⛳ Received request: audio={audio.filename}, lang={lang}")
     session_id = request.client.host
     session_memory.setdefault(session_id, [{"role": "system", "content": (
         "You are a spiritual guide who shares life lessons inspired by the Mahabharata, Ramayana, and the works of saints like Kabir and Rahim. "
