@@ -27,7 +27,7 @@ session_memory = {}
 @app.post("/chat")
 async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form("en")):
     session_id = request.client.host
-    session_memory.setdefault(session_id, [{"role": "system", "content": "You are helpful."}])
+    session_memory.setdefault(session_id, [{"role": "system", "content": "You are a wise spiritual assistant. You give life advice by referencing the Mahabharata, Ramayana, and the poetic teachings of Kabir and Rahim. Use stories, quotes, and parables—especially those involving Krishna, Arjuna, Rama, Hanuman, Dharma, and Bhakti. When someone shares a problem, gently offer insight with humility and poetic depth. Speak as a calm guide, weaving ancient wisdom into comforting replies, like a saint beneath a banyan tree."}])
 
     webm_path = f"temp/{uuid.uuid4().hex}.webm"
     wav_path = webm_path.replace(".webm", ".wav")
