@@ -2,17 +2,17 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Voice Chatbot</title>
+  <title>ArtI - Voice Chatbot</title>
   <style>
     body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-    button, select { padding: 10px 15px; font-size: 16px; cursor: pointer; margin-top: 10px; }
-    #status { margin: 10px 0; color: #666; }
+    button, select { padding: 10px 15px; font-size: 16px; margin-top: 10px; cursor: pointer; }
+    #status { margin: 10px 0; color: #444; }
     #response { margin: 20px 0; padding: 15px; border: 1px solid #ddd; min-height: 50px; }
     audio { width: 100%; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>ArtI</h1>
+  <h1>ArtI - Voice Chatbot</h1>
   <select id="language">
     <option value="en">English</option>
     <option value="hi">Hindi</option>
@@ -56,7 +56,7 @@
         }
       } catch (error) {
         if (retries > 0) {
-          console.warn('Retrying after error:', error.message);
+          console.warn('Retrying...', error.message);
           setTimeout(() => sendAudio(formData, retries - 1), 1000);
         } else {
           console.error('Final error:', error);
@@ -68,8 +68,6 @@
     recordBtn.addEventListener('click', async () => {
       if (mediaRecorder?.state === 'recording') {
         mediaRecorder.stop();
-        recordBtn.textContent = 'Start Recording';
-        statusDiv.textContent = 'Processing...';
         return;
       }
 
@@ -86,21 +84,24 @@
           const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
           const formData = new FormData();
           formData.append('audio', audioBlob, 'recording.webm');
-          formData.append('lang', languageSelector.value || 'en');  // always append lang
-          sendAudio(formData, 2);
+          formData.append('lang', languageSelector.value || 'en');
+          sendAudio(formData);
         };
 
         mediaRecorder.start();
-        setTimeout(() => {
-          if (mediaRecorder.state === 'recording') {
-            mediaRecorder.stop();
-          }
-        }, 2500); // 2.5 seconds minimum recording time
         recordBtn.textContent = 'Stop Recording';
         statusDiv.textContent = '🎙️ Recording...';
-      } catch (error) {
-        console.error('Mic error:', error);
-        statusDiv.textContent = '❌ Microphone access denied or unsupported device.';
+
+        setTimeout(() => {
+          if (mediaRecorder?.state === 'recording') {
+            mediaRecorder.stop();
+            recordBtn.textContent = 'Start Recording';
+            statusDiv.textContent = 'Processing...';
+          }
+        }, 2500);
+      } catch (err) {
+        console.error('Mic access error:', err);
+        statusDiv.textContent = '❌ Microphone access denied';
       }
     });
   </script>
