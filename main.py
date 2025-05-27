@@ -1,5 +1,6 @@
 import os
 import uuid
+import traceback
 from fastapi import FastAPI, UploadFile, File, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -56,6 +57,7 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
             audio_segment.set_channels(1).set_frame_rate(16000).export(wav_path, format="wav")
         except Exception as e:
             print("❌ Pydub/FFmpeg error:", e)
+            traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": "Could not process audio format."})
 
         with sr.AudioFile(wav_path) as source:
@@ -82,13 +84,15 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
             gTTS(reply, lang=lang).save(mp3_path)
         except Exception as e:
             print(f"❌ gTTS Error: {e}")
+            traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": "Failed to generate audio reply."})
 
         return {"reply": reply, "audio_url": f"/audio/{mp3_filename}"}
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        traceback.print_exc()
+        return JSONResponse(status_code=500, content={"error": f"{type(e).__name__}: {str(e)}"})
 
     finally:
         for f in [webm_path, wav_path]:
