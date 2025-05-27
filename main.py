@@ -1,6 +1,6 @@
+
 import os
 import uuid
-import traceback
 from fastapi import FastAPI, UploadFile, File, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, FileResponse
@@ -44,12 +44,12 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
 
     try:
         audio_bytes = await audio.read()
+        print(f"📦 Audio byte length: {len(audio_bytes)}")
         if len(audio_bytes) < 1024:
             return JSONResponse(status_code=400, content={"error": "Audio too short or not captured properly."})
 
         with open(webm_path, "wb") as f:
             f.write(audio_bytes)
-
         print(f"🎧 Received audio: {audio.filename} ({len(audio_bytes)} bytes)")
 
         try:
@@ -57,16 +57,12 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
             audio_segment.set_channels(1).set_frame_rate(16000).export(wav_path, format="wav")
         except Exception as e:
             print("❌ Pydub/FFmpeg error:", e)
-            traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": "Could not process audio format."})
 
         with sr.AudioFile(wav_path) as source:
             audio_data = recognizer.record(source)
             google_lang_code = "hi-IN" if lang == "hi" else "en-US"
-            try:
-                text = recognizer.recognize_google(audio_data, language=google_lang_code)
-            except sr.UnknownValueError:
-                return JSONResponse(status_code=400, content={"error": "Sorry, I couldn’t understand the audio. Please try speaking more clearly or closer to the mic."})
+            text = recognizer.recognize_google(audio_data, language=google_lang_code)
         print(f"🗣️ Transcribed: {text}")
 
         session_memory[session_id].append({"role": "user", "content": text})
@@ -87,15 +83,13 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
             gTTS(reply, lang=lang).save(mp3_path)
         except Exception as e:
             print(f"❌ gTTS Error: {e}")
-            traceback.print_exc()
             return JSONResponse(status_code=500, content={"error": "Failed to generate audio reply."})
 
         return {"reply": reply, "audio_url": f"/audio/{mp3_filename}"}
 
     except Exception as e:
         print(f"❌ Error: {str(e)}")
-        traceback.print_exc()
-        return JSONResponse(status_code=500, content={"error": f"{type(e).__name__}: {str(e)}"})
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
     finally:
         for f in [webm_path, wav_path]:
