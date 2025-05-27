@@ -45,6 +45,10 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
         audio_bytes = await audio.read()
         print(f"📦 Audio byte length: {len(audio_bytes)}")
         if len(audio_bytes) < 1024:
+            print("❌ Audio too short or empty.")
+            return JSONResponse(status_code=400, content={
+                "error": "Your voice message was too short. Please speak clearly for at least a few seconds."
+            })
             return JSONResponse(status_code=400, content={"error": "Audio too short or not captured properly."})
 
         with open(webm_path, "wb") as f:

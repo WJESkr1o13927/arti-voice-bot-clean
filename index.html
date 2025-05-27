@@ -42,7 +42,7 @@
         if (!response.ok) throw new Error('Network response was not ok');
         const result = await response.json();
 
-        if (result.reply) {
+        if (result.reply && result.audio_url) {
           responseDiv.textContent = result.reply;
           statusDiv.textContent = '✅ Done';
           audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
@@ -50,6 +50,9 @@
           audioPlayer.play().catch(() => {
             statusDiv.textContent += ' (click play above)';
           });
+        } else if (result.reply) {
+          responseDiv.textContent = result.reply;
+          statusDiv.textContent = '✅ Text received, but no audio.';
         } else {
           responseDiv.textContent = "❌ No reply received";
           statusDiv.textContent = "❌ GPT error or server failed.";
@@ -98,7 +101,7 @@
             recordBtn.textContent = 'Start Recording';
             statusDiv.textContent = 'Processing...';
           }
-        }, 2500);
+        }, 9999);
       } catch (err) {
         console.error('Mic access error:', err);
         statusDiv.textContent = '❌ Microphone access denied';
