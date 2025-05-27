@@ -28,12 +28,15 @@ session_memory = {}
 async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form("en")):
     print(f"⛳ Received request: audio={audio.filename}, lang={lang}")
     session_id = request.client.host
-    session_memory.setdefault(session_id, [{"role": "system", "content": (
-        "You are a spiritual guide who shares life lessons inspired by the Mahabharata, Ramayana, and the works of saints like Kabir and Rahim. "
-        "Respond to users in short, poetic, and emotionally supportive replies at first—just 1 to 3 lines. "
-        "Only expand in detail if the user continues with deeper questions or stays on the same theme. "
-        "Use gentle wisdom, metaphors, and a reflective tone. Keep your early messages grounded, like a soft mantra offered under a banyan tree."
-    )}])
+    session_memory.setdefault(session_id, [{
+        "role": "system",
+        "content": (
+            "You are a spiritual guide who shares life lessons inspired by the Mahabharata, Ramayana, and the works of saints like Kabir and Rahim. "
+            "Respond to users in short, poetic, and emotionally supportive replies at first—just 1 to 3 lines. "
+            "Only expand in detail if the user continues with deeper questions or stays on the same theme. "
+            "Use gentle wisdom, metaphors, and a reflective tone. Keep your early messages grounded, like a soft mantra offered under a banyan tree."
+        )
+    }])
 
     webm_path = f"temp/{uuid.uuid4().hex}.webm"
     wav_path = webm_path.replace(".webm", ".wav")
@@ -74,7 +77,12 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
 
         mp3_filename = f"{uuid.uuid4().hex}.mp3"
         mp3_path = os.path.join("temp", mp3_filename)
-        gTTS(reply, lang=lang).save(mp3_path)
+
+        try:
+            gTTS(reply, lang=lang).save(mp3_path)
+        except Exception as e:
+            print(f"❌ gTTS Error: {e}")
+            return JSONResponse(status_code=500, content={"error": "Failed to generate audio reply."})
 
         return {"reply": reply, "audio_url": f"/audio/{mp3_filename}"}
 
