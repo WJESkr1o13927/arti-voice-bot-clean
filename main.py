@@ -1,4 +1,3 @@
-
 import os
 import uuid
 from fastapi import FastAPI, UploadFile, File, Request, Form
@@ -59,11 +58,18 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
             print("❌ Pydub/FFmpeg error:", e)
             return JSONResponse(status_code=500, content={"error": "Could not process audio format."})
 
-        with sr.AudioFile(wav_path) as source:
-            audio_data = recognizer.record(source)
-            google_lang_code = "hi-IN" if lang == "hi" else "en-US"
-            text = recognizer.recognize_google(audio_data, language=google_lang_code)
-        print(f"🗣️ Transcribed: {text}")
+        try:
+            with sr.AudioFile(wav_path) as source:
+                audio_data = recognizer.record(source)
+                google_lang_code = "hi-IN" if lang == "hi" else "en-US"
+                text = recognizer.recognize_google(audio_data, language=google_lang_code)
+            print(f"🗣️ Transcribed: {text}")
+        except sr.UnknownValueError:
+            print("❌ Google Speech could not understand audio.")
+            return JSONResponse(status_code=400, content={"error": "Could not understand audio. Please speak clearly."})
+        except sr.RequestError as e:
+            print(f"❌ Google Speech request failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Speech recognition service failed."})
 
         session_memory[session_id].append({"role": "user", "content": text})
 
@@ -88,7 +94,7 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
         return {"reply": reply, "audio_url": f"/audio/{mp3_filename}"}
 
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
+        print(f"❌ General Error: {str(e)}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
     finally:
