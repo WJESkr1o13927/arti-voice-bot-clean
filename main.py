@@ -63,7 +63,10 @@ async def chat(request: Request, audio: UploadFile = File(...), lang: str = Form
         with sr.AudioFile(wav_path) as source:
             audio_data = recognizer.record(source)
             google_lang_code = "hi-IN" if lang == "hi" else "en-US"
-            text = recognizer.recognize_google(audio_data, language=google_lang_code)
+            try:
+                text = recognizer.recognize_google(audio_data, language=google_lang_code)
+            except sr.UnknownValueError:
+                return JSONResponse(status_code=400, content={"error": "Sorry, I couldn’t understand the audio. Please try speaking more clearly or closer to the mic."})
         print(f"🗣️ Transcribed: {text}")
 
         session_memory[session_id].append({"role": "user", "content": text})
