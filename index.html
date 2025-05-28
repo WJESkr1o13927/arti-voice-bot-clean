@@ -1,8 +1,8 @@
-<!DOCTYPE html>
+<!--<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>ArtI - Voice Chatbot</title>
+  <title>ArtI</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -26,7 +26,7 @@
       margin-top: 10px;
     }
     #micButton {
-      background-color: #25D366;
+      background-color: #c27697;
       border: none;
       border-radius: 50%;
       width: 70px;
@@ -86,6 +86,157 @@
           statusDiv.textContent = '✅ Done';
           audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
           audioPlayer.load();
+          audioPlayer.play().catch(() => {
+            statusDiv.textContent += ' (click play above)';
+          });
+        } else if (result.reply) {
+          responseDiv.textContent = result.reply;
+          statusDiv.textContent = '✅ Text received, but no audio.';
+        } else {
+          responseDiv.textContent = "❌ No reply received";
+          statusDiv.textContent = "❌ GPT error or server failed.";
+        }
+      } catch (error) {
+        if (retries > 0) {
+          setTimeout(() => sendAudio(formData, retries - 1), 1000);
+        } else {
+          statusDiv.textContent = '❌ Failed after retry: ' + error.message;
+        }
+      }
+    }
+
+    async function startRecording() {
+      if (isRecording) return;
+      isRecording = true;
+      statusDiv.textContent = '🎙️ Recording...';
+      micButton.classList.add('recording');
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        formData.append('lang', languageSelector.value || 'en');
+        sendAudio(formData);
+        micButton.classList.remove('recording');
+        statusDiv.textContent = 'Processing...';
+        isRecording = false;
+      };
+
+      mediaRecorder.start();
+    }
+
+    function stopRecording() {
+      if (mediaRecorder?.state === 'recording') {
+        mediaRecorder.stop();
+      }
+    }
+
+    micButton.addEventListener('mousedown', startRecording);
+    micButton.addEventListener('touchstart', startRecording);
+    micButton.addEventListener('mouseup', stopRecording);
+    micButton.addEventListener('mouseleave', stopRecording);
+    micButton.addEventListener('touchend', stopRecording);
+  </script>
+</body>
+</html>-->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1, user-scalable=no">
+  <title>ArtI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    #status {
+      margin: 10px 0;
+      color: #444;
+    }
+    #response {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      min-height: 50px;
+    }
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+    #micButton {
+      background-color: #c27697;
+      border: none;
+      border-radius: 50%;
+      width: 90px;
+      height: 90px;
+      font-size: 32px;
+      color: white;
+      cursor: pointer;
+      position: relative;
+      outline: none;
+    }
+    #micButton.recording {
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(37, 211, 102, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+    }
+  </style>
+</head>
+<body>
+  <h1>ArtI - Voice Chatbot</h1>
+  <select id="language">
+    <option value="en">English</option>
+    <option value="hi">Hindi</option>
+  </select>
+  <div>
+    <button id="micButton" title="Hold to Speak">🎤</button>
+  </div>
+  <div id="status">Ready</div>
+  <div id="response"></div>
+  <audio id="audioPlayer" controls></audio>
+
+  <script>
+    const micButton = document.getElementById('micButton');
+    const statusDiv = document.getElementById('status');
+    const responseDiv = document.getElementById('response');
+    const audioPlayer = document.getElementById('audioPlayer');
+    const languageSelector = document.getElementById('language');
+
+    let mediaRecorder;
+    let audioChunks = [];
+    let isRecording = false;
+
+    async function sendAudio(formData, retries = 2) {
+      try {
+        const response = await fetch('https://arti-voice-bot-clean.onrender.com/chat', {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) throw new Error('Network response was not ok');
+        const result = await response.json();
+
+        if (result.reply && result.audio_url) {
+          responseDiv.textContent = result.reply;
+          statusDiv.textContent = '✅ Done';
+          audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
+          audioPlayer.load();
+          audioPlayer.playbackRate = 1.25;  // ⏩ Set playback speed to 1.25x
           audioPlayer.play().catch(() => {
             statusDiv.textContent += ' (click play above)';
           });
