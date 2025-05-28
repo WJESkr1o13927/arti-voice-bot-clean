@@ -4,11 +4,47 @@
   <meta charset="UTF-8">
   <title>ArtI - Voice Chatbot</title>
   <style>
-    body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
-    button, select { padding: 10px 15px; font-size: 16px; margin-top: 10px; cursor: pointer; }
-    #status { margin: 10px 0; color: #444; }
-    #response { margin: 20px 0; padding: 15px; border: 1px solid #ddd; min-height: 50px; }
-    audio { width: 100%; margin-top: 10px; }
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      text-align: center;
+    }
+    #status {
+      margin: 10px 0;
+      color: #444;
+    }
+    #response {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ddd;
+      min-height: 50px;
+    }
+    audio {
+      width: 100%;
+      margin-top: 10px;
+    }
+    #micButton {
+      background-color: #25D366;
+      border: none;
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+      position: relative;
+      outline: none;
+    }
+    #micButton.recording {
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4); }
+      70% { box-shadow: 0 0 0 20px rgba(37, 211, 102, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+    }
   </style>
 </head>
 <body>
@@ -17,13 +53,15 @@
     <option value="en">English</option>
     <option value="hi">Hindi</option>
   </select>
-  <button id="recordBtn">Start Recording</button>
+  <div>
+    <button id="micButton" title="Hold to Speak">🎤</button>
+  </div>
   <div id="status">Ready</div>
   <div id="response"></div>
   <audio id="audioPlayer" controls></audio>
 
   <script>
-    const recordBtn = document.getElementById('recordBtn');
+    const micButton = document.getElementById('micButton');
     const statusDiv = document.getElementById('status');
     const responseDiv = document.getElementById('response');
     const audioPlayer = document.getElementById('audioPlayer');
@@ -31,7 +69,7 @@
 
     let mediaRecorder;
     let audioChunks = [];
-    let stopTimeout;
+    let isRecording = false;
 
     async function sendAudio(formData, retries = 2) {
       try {
@@ -60,57 +98,52 @@
         }
       } catch (error) {
         if (retries > 0) {
-          console.warn('Retrying...', error.message);
           setTimeout(() => sendAudio(formData, retries - 1), 1000);
         } else {
-          console.error('Final error:', error);
           statusDiv.textContent = '❌ Failed after retry: ' + error.message;
         }
       }
     }
 
-    recordBtn.addEventListener('click', async () => {
+    async function startRecording() {
+      if (isRecording) return;
+      isRecording = true;
+      statusDiv.textContent = '🎙️ Recording...';
+      micButton.classList.add('recording');
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
+      audioChunks = [];
+
+      mediaRecorder.ondataavailable = e => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
+
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'recording.webm');
+        formData.append('lang', languageSelector.value || 'en');
+        sendAudio(formData);
+        micButton.classList.remove('recording');
+        statusDiv.textContent = 'Processing...';
+        isRecording = false;
+      };
+
+      mediaRecorder.start();
+    }
+
+    function stopRecording() {
       if (mediaRecorder?.state === 'recording') {
         mediaRecorder.stop();
-        clearTimeout(stopTimeout);
-        recordBtn.textContent = 'Start Recording';
-        statusDiv.textContent = 'Processing...';
-        return;
       }
+    }
 
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = e => {
-          if (e.data.size > 0) audioChunks.push(e.data);
-        };
-
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          const formData = new FormData();
-          formData.append('audio', audioBlob, 'recording.webm');
-          formData.append('lang', languageSelector.value || 'en');
-          sendAudio(formData);
-        };
-
-        mediaRecorder.start();
-        recordBtn.textContent = 'Stop Recording';
-        statusDiv.textContent = '🎙️ Recording...';
-
-        stopTimeout = setTimeout(() => {
-          if (mediaRecorder?.state === 'recording') {
-            mediaRecorder.stop();
-            recordBtn.textContent = 'Start Recording';
-            statusDiv.textContent = 'Processing...';
-          }
-        }, 10000); // Fallback timeout after 10 seconds
-      } catch (err) {
-        console.error('Mic access error:', err);
-        statusDiv.textContent = '❌ Microphone access denied';
-      }
-    });
+    micButton.addEventListener('mousedown', startRecording);
+    micButton.addEventListener('touchstart', startRecording);
+    micButton.addEventListener('mouseup', stopRecording);
+    micButton.addEventListener('mouseleave', stopRecording);
+    micButton.addEventListener('touchend', stopRecording);
   </script>
 </body>
 </html>
