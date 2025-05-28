@@ -186,6 +186,8 @@
       cursor: pointer;
       position: relative;
       outline: none;
+      user-select: none;
+      -webkit-user-select: none;
     }
     #micButton.recording {
       animation: pulse 1s infinite;
@@ -236,7 +238,7 @@
           statusDiv.textContent = '✅ Done';
           audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
           audioPlayer.load();
-          audioPlayer.playbackRate = 1.25;  // ⏩ Set playback speed to 1.25x
+          audioPlayer.playbackRate = 1.25;
           audioPlayer.play().catch(() => {
             statusDiv.textContent += ' (click play above)';
           });
@@ -290,11 +292,22 @@
       }
     }
 
+    // Main controls
     micButton.addEventListener('mousedown', startRecording);
     micButton.addEventListener('touchstart', startRecording);
     micButton.addEventListener('mouseup', stopRecording);
     micButton.addEventListener('mouseleave', stopRecording);
     micButton.addEventListener('touchend', stopRecording);
+
+    // Failsafe: single tap stops recording too
+    micButton.addEventListener('click', () => {
+      if (isRecording) {
+        stopRecording();
+        micButton.classList.remove('recording');
+        statusDiv.textContent = 'Processing...';
+        isRecording = false;
+      }
+    });
   </script>
 </body>
 </html>
