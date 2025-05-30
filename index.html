@@ -252,9 +252,7 @@
       outline: none;
       user-select: none;
     }
-    #micButton.recording {
-      animation: pulse 1s infinite;
-    }
+    #micButton.recording { animation: pulse 1s infinite; }
     @keyframes pulse {
       0%   { box-shadow: 0 0 0 0 rgba(37,211,102,0.4); }
       70%  { box-shadow: 0 0 0 20px rgba(37,211,102,0); }
@@ -329,9 +327,34 @@
       chatDiv.scrollTop = chatDiv.scrollHeight;
     }
 
-    async function sendAudio(formData, retries = 2) {
+    // Send typed text
+    async function sendText(message) {
+      if (!message) return;
+      statusDiv.textContent = 'Processing…';
+      addUserMessage(message);
+      textInput.value = '';
+
+      const fd = new FormData();
+      fd.append('text', message);
+      fd.append('lang', languageSelector.value);
+
       try {
-        statusDiv.textContent = 'Processing…';
+        const res = await fetch('/chat', { method: 'POST', body: fd });
+        const json = await res.json();
+        if (json.reply) {
+          addBotMessage(json.reply, `/audio/${json.audio_url}`);
+          statusDiv.textContent = 'Text received';
+        }
+      } catch (err) {
+        addBotMessage('❌ Error sending text.');
+        statusDiv.textContent = 'Error';
+      }
+    }
+
+    // Send audio message
+    async function sendAudio(formData, retries = 2) {
+      statusDiv.textContent = 'Processing…';
+      try {
         const res = await fetch('/chat', { method:'POST', body: formData });
         const json = await res.json();
         if (json.transcript) addUserMessage(json.transcript);
@@ -348,32 +371,40 @@
       }
     }
 
+    // Recording handlers
     function startRecording() {
       if (isRecording) return;
       isRecording = true;
       micButton.classList.add('recording');
       statusDiv.textContent = 'Recording…';
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        mediaRecorder = new MediaRecorder(stream, { mimeType:'audio/webm;codecs=opus' });
-        audioChunks = [];
-        mediaRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
-        mediaRecorder.onstop = () => {
-          const blob = new Blob(audioChunks, { type:'audio/webm' });
-          const fd = new FormData();
-          fd.append('audio', blob, 'voice.webm');
-          fd.append('lang', languageSelector.value);
-          sendAudio(fd);
-          micButton.classList.remove('recording');
-          isRecording = false;
-        };
-        mediaRecorder.start();
-      });
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          mediaRecorder = new MediaRecorder(stream, { mimeType:'audio/webm;codecs=opus' });
+          audioChunks = [];
+          mediaRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
+          mediaRecorder.onstop = () => {
+            const blob = new Blob(audioChunks, { type:'audio/webm' });
+            const fd = new FormData();
+            fd.append('audio', blob, 'voice.webm');
+            fd.append('lang', languageSelector.value);
+            sendAudio(fd);
+            micButton.classList.remove('recording');
+            isRecording = false;
+          };
+          mediaRecorder.start();
+        });
     }
 
     function stopRecording() {
       if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
     }
 
+    // Event listeners
+    textInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        sendText(textInput.value.trim());
+      }
+    });
     micButton.addEventListener('pointerdown', startRecording);
     micButton.addEventListener('pointerup', stopRecording);
     micButton.addEventListener('pointerleave', stopRecording);
