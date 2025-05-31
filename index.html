@@ -157,7 +157,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1, user-scalable=no">
-  <title>ArtI Chat</n  style="padding-bottom: env(keyboard-inset-height);">
+  <title>ArtI Chat</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -168,6 +168,8 @@
       flex-direction: column;
       height: 100vh;
       box-sizing: border-box;
+      /* Adjust for on-screen keyboard inset on mobile */
+      padding-bottom: env(keyboard-inset-height);
     }
     header {
       display: flex;
@@ -364,7 +366,6 @@
 
     function stopRecording() { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); }
 
-    // Toggle recording on mobile: tap to start/stop
     if (isMobile) {
       micButton.removeEventListener('pointerdown', startRecording);
       micButton.removeEventListener('pointerup', stopRecording);
