@@ -1,171 +1,4 @@
-<!--<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1, user-scalable=no">
-  <title>ArtI</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 20px;
-      text-align: center;
-    }
-    #status {
-      margin: 10px 0;
-      color: #444;
-    }
-    #response {
-      margin: 20px 0;
-      padding: 15px;
-      border: 1px solid #ddd;
-      min-height: 50px;
-    }
-    audio {
-      width: 100%;
-      margin-top: 10px;
-    }
-    #micButton {
-      background-color: #c27697;
-      border: none;
-      border-radius: 50%;
-      width: 90px;
-      height: 90px;
-      font-size: 32px;
-      color: white;
-      cursor: pointer;
-      position: relative;
-      outline: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-    #micButton.recording {
-      animation: pulse 1s infinite;
-    }
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.4); }
-      70% { box-shadow: 0 0 0 20px rgba(37, 211, 102, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
-    }
-  </style>
-</head>
-<body>
-  <h1>ArtI</h1>
-  <select id="language">
-    <option value="en">English</option>
-    <option value="hi">Hindi</option>
-  </select>
-  <div>
-    <button id="micButton" title="Hold to Speak">🎤</button>
-  </div>
-  <div id="status">Ready</div>
-  <div id="response"></div>
-  <audio id="audioPlayer" controls></audio>
-
-  <script>
-    const micButton = document.getElementById('micButton');
-    const statusDiv = document.getElementById('status');
-    const responseDiv = document.getElementById('response');
-    const audioPlayer = document.getElementById('audioPlayer');
-    const languageSelector = document.getElementById('language');
-
-    let mediaRecorder;
-    let audioChunks = [];
-    let isRecording = false;
-
-    async function sendAudio(formData, retries = 2) {
-      try {
-        const response = await fetch('https://arti-voice-bot-clean.onrender.com/chat', {
-          method: 'POST',
-          body: formData
-        });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-        const result = await response.json();
-
-        if (result.reply && result.audio_url) {
-          responseDiv.textContent = result.reply;
-          statusDiv.textContent = '✅ Done';
-          audioPlayer.src = `https://arti-voice-bot-clean.onrender.com${result.audio_url}`;
-          audioPlayer.load();
-          audioPlayer.playbackRate = 1.25;
-          audioPlayer.play().catch(() => {
-            statusDiv.textContent += ' (click play above)';
-          });
-        } else if (result.reply) {
-          responseDiv.textContent = result.reply;
-          statusDiv.textContent = '✅ Text received, but no audio.';
-        } else {
-          responseDiv.textContent = "❌ No reply received";
-          statusDiv.textContent = "❌ GPT error or server failed.";
-        }
-      } catch (error) {
-        if (retries > 0) {
-          setTimeout(() => sendAudio(formData, retries - 1), 1000);
-        } else {
-          statusDiv.textContent = '❌ Failed after retry: ' + error.message;
-        }
-      }
-    }
-
-    async function startRecording() {
-      if (isRecording) return;
-      isRecording = true;
-      statusDiv.textContent = '🎙️ Recording...';
-      micButton.classList.add('recording');
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-      audioChunks = [];
-
-      mediaRecorder.ondataavailable = e => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const formData = new FormData();
-        formData.append('audio', audioBlob, 'recording.webm');
-        formData.append('lang', languageSelector.value || 'en');
-        sendAudio(formData);
-        micButton.classList.remove('recording');
-        statusDiv.textContent = 'Processing...';
-        isRecording = false;
-      };
-
-      mediaRecorder.start();
-    }
-
-    function stopRecording() {
-      if (mediaRecorder?.state === 'recording') {
-        mediaRecorder.stop();
-      }
-    }
-
-    // Main controls
-    micButton.addEventListener('mousedown', startRecording);
-    micButton.addEventListener('touchstart', startRecording);
-    micButton.addEventListener('mouseup', stopRecording);
-    micButton.addEventListener('mouseleave', stopRecording);
-    micButton.addEventListener('touchend', stopRecording);
-
-    // Failsafe: single tap stops recording too
-    micButton.addEventListener('click', () => {
-      if (isRecording) {
-        stopRecording();
-        micButton.classList.remove('recording');
-        statusDiv.textContent = 'Processing...';
-        isRecording = false;
-      }
-    });
-  </script>
-</body>
-</html> -->
-<!-- hello-->
-
-
-
+<!--
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -314,6 +147,240 @@
     micButton.addEventListener('pointerdown', startRecording);
     micButton.addEventListener('pointerup', stopRecording);
     micButton.addEventListener('pointerleave', stopRecording);
+  </script>
+</body>
+</html>
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1, user-scalable=no">
+  <title>ArtI Chat</n  style="padding-bottom: env(keyboard-inset-height);">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    #title-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    #chat {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      margin-bottom: 10px;
+    }
+    .message {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+    }
+    .message.user { align-items: flex-end; }
+    .message.bot  { align-items: flex-start; }
+    .bubble {
+      max-width: 70%;
+      padding: 10px;
+      border-radius: 12px;
+      line-height: 1.4;
+    }
+    .message.user .bubble { background: #c27697; color: white; border-bottom-right-radius: 0; }
+    .message.bot .bubble  { background: #eee; color: #333; border-bottom-left-radius: 0; }
+    #inputArea {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 8px;
+    }
+    #textInput {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+    }
+    #sendButton {
+      background-color: #4caf50;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      cursor: pointer;
+    }
+    #micButton {
+      background-color: #c27697;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+      outline: none;
+      user-select: none;
+    }
+    #micButton.recording { animation: pulse 1s infinite; }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(37,211,102,0.4); }
+      70%  { box-shadow: 0 0 0 20px rgba(37,211,102,0); }
+      100% { box-shadow: 0 0 0 0 rgba(37,211,102,0); }
+    }
+    audio {
+      margin-top: 5px;
+      width: 100%;
+      max-width: 70%;
+      border-radius: 8px;
+    }
+    #blurButton {
+      background: none;
+      border: none;
+      font-size: 20px;
+      cursor: pointer;
+      margin-left: 5px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="title-area">
+      <h1 style="margin:0;">ArtI</h1>
+      <span id="status">Ready</span>
+    </div>
+    <select id="language" aria-label="Select language">
+      <option value="en">English</option>
+      <option value="hi">Hindi / हिंदी</option>
+      <option value="bn" disabled>Bengali / বাংলা</option>
+      <option value="mr" disabled>Marathi / मराठी</option>
+      <option value="te" disabled>Telugu / తెలుగు</option>
+      <option value="ta" disabled>Tamil / தமிழ்</option>
+      <option value="gu" disabled>Gujarati / ગુજરાતી</option>
+    </select>
+  </header>
+
+  <div id="chat"></div>
+
+  <div id="inputArea">
+    <button id="sendButton" aria-label="Send"></button>
+    <input id="textInput" type="text" placeholder="Type a message…" aria-label="Type a message" />
+    <button id="micButton" title="Hold or tap to speak" aria-label="Speak">🎤</button>
+    <button id="blurButton" aria-label="Hide keyboard">⌨️⬇️</button>
+  </div>
+
+  <script>
+    const API_URL = 'https://arti-voice-bot-clean.onrender.com/chat';
+    const statusDiv = document.getElementById('status');
+    const micButton = document.getElementById('micButton');
+    const chatDiv    = document.getElementById('chat');
+    const textInput  = document.getElementById('textInput');
+    const sendButton = document.getElementById('sendButton');
+    const blurButton = document.getElementById('blurButton');
+    const languageSelector = document.getElementById('language');
+
+    let mediaRecorder, audioChunks = [], isRecording = false;
+    const isMobile = 'ontouchstart' in window;
+
+    function addUserMessage(text) {
+      const msg = document.createElement('div'); msg.className = 'message user';
+      const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
+      msg.appendChild(bubble); chatDiv.appendChild(msg);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    function addBotMessage(text, audioUrl) {
+      const msg = document.createElement('div'); msg.className = 'message bot';
+      const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
+      msg.appendChild(bubble);
+      if (audioUrl) {
+        const audioEl = document.createElement('audio'); audioEl.controls = true; audioEl.src = audioUrl;
+        msg.appendChild(audioEl);
+      }
+      chatDiv.appendChild(msg); chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    async function sendText(message) {
+      if (!message) return;
+      statusDiv.textContent = 'Processing…'; addUserMessage(message); textInput.value = '';
+      const fd = new FormData(); fd.append('text', message); fd.append('lang', languageSelector.value);
+      try {
+        const res = await fetch(API_URL, { method: 'POST', body: fd });
+        const json = await res.json();
+        if (json.error) { addBotMessage('❌ ' + json.error); statusDiv.textContent = 'Error'; }
+        else { addBotMessage(json.reply, json.audio_url); statusDiv.textContent = 'Text received'; }
+      } catch (err) {
+        addBotMessage('❌ Network error'); statusDiv.textContent = 'Error';
+      }
+    }
+
+    async function sendAudio(formData, retries = 2) {
+      statusDiv.textContent = 'Processing…';
+      try {
+        const res = await fetch(API_URL, { method:'POST', body: formData });
+        const json = await res.json();
+        if (json.error) { addBotMessage('❌ ' + json.error); statusDiv.textContent = 'Error'; }
+        else { if (json.transcript) addUserMessage(json.transcript); addBotMessage(json.reply, json.audio_url); statusDiv.textContent = 'Audio received'; }
+      } catch (err) {
+        if (retries > 0) setTimeout(() => sendAudio(formData, retries-1), 1000);
+        else { addBotMessage('❌ Network error'); statusDiv.textContent = 'Error'; }
+      }
+    }
+
+    function startRecording() {
+      if (isRecording) return;
+      isRecording = true; micButton.classList.add('recording'); statusDiv.textContent = 'Recording…';
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        mediaRecorder = new MediaRecorder(stream, { mimeType:'audio/webm;codecs=opus' }); audioChunks = [];
+        mediaRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type:'audio/webm' });
+          const fd = new FormData(); fd.append('audio', blob, 'voice.webm'); fd.append('lang', languageSelector.value);
+          sendAudio(fd); micButton.classList.remove('recording'); isRecording = false;
+        };
+        mediaRecorder.start();
+      });
+    }
+
+    function stopRecording() { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); }
+
+    // Toggle recording on mobile: tap to start/stop
+    if (isMobile) {
+      micButton.removeEventListener('pointerdown', startRecording);
+      micButton.removeEventListener('pointerup', stopRecording);
+      micButton.removeEventListener('pointerleave', stopRecording);
+      micButton.addEventListener('click', () => {
+        if (!isRecording) startRecording(); else stopRecording();
+      });
+    } else {
+      micButton.addEventListener('pointerdown', startRecording);
+      micButton.addEventListener('pointerup', stopRecording);
+      micButton.addEventListener('pointerleave', stopRecording);
+    }
+
+    textInput.addEventListener('keydown', e => { if (e.key === 'Enter') sendText(textInput.value.trim()); });
+    sendButton.addEventListener('click', () => sendText(textInput.value.trim()));
+    blurButton.addEventListener('click', () => textInput.blur());
   </script>
 </body>
 </html>
