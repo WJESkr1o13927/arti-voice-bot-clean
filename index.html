@@ -156,7 +156,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.1, maximum-scale=1.1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ArtI Chat</title>
   <style>
     body {
@@ -168,7 +168,6 @@
       flex-direction: column;
       height: 100vh;
       box-sizing: border-box;
-      /* Adjust for on-screen keyboard inset on mobile */
       padding-bottom: env(keyboard-inset-height);
     }
     header {
@@ -211,38 +210,42 @@
     #inputArea {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 10px;
+      gap: 6px;
+      padding: 8px;
       background: #fafafa;
       border-radius: 8px;
+      flex-wrap: wrap;
     }
     #textInput {
       flex: 1;
-      padding: 12px;
-      font-size: 16px;
+      padding: 10px;
+      font-size: 14px;
       border: 1px solid #ccc;
       border-radius: 8px;
       outline: none;
+      min-width: 100px;
     }
     #sendButton {
       background-color: #4caf50;
       border: none;
       border-radius: 50%;
-      width: 40px;
-      height: 40px;
+      width: 36px;
+      height: 36px;
       cursor: pointer;
+      min-width: 36px;
     }
     #micButton {
       background-color: #c27697;
       border: none;
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
-      font-size: 24px;
+      width: 36px;
+      height: 36px;
+      font-size: 20px;
       color: white;
       cursor: pointer;
       outline: none;
       user-select: none;
+      min-width: 36px;
     }
     #micButton.recording { animation: pulse 1s infinite; }
     @keyframes pulse {
@@ -259,9 +262,16 @@
     #blurButton {
       background: none;
       border: none;
-      font-size: 20px;
+      font-size: 18px;
       cursor: pointer;
-      margin-left: 5px;
+      margin-left: 4px;
+      min-width: 30px;
+    }
+    @media (max-width: 480px) {
+      #inputArea { padding: 6px; gap: 4px; }
+      #textInput { font-size: 13px; padding: 8px; }
+      #sendButton, #micButton { width: 32px; height: 32px; }
+      audio { max-width: 100%; }
     }
   </style>
 </head>
@@ -292,7 +302,8 @@
   </div>
 
   <script>
-    const API_URL = 'https://arti-voice-bot-clean.onrender.com/chat';
+    const API_BASE = 'https://arti-voice-bot-clean.onrender.com';
+    const CHAT_URL = API_BASE + '/chat';
     const statusDiv = document.getElementById('status');
     const micButton = document.getElementById('micButton');
     const chatDiv    = document.getElementById('chat');
@@ -307,7 +318,8 @@
     function addUserMessage(text) {
       const msg = document.createElement('div'); msg.className = 'message user';
       const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
-      msg.appendChild(bubble); chatDiv.appendChild(msg);
+      msg.appendChild(bubble);
+      chatDiv.appendChild(msg);
       chatDiv.scrollTop = chatDiv.scrollHeight;
     }
 
@@ -316,60 +328,91 @@
       const bubble = document.createElement('div'); bubble.className = 'bubble'; bubble.textContent = text;
       msg.appendChild(bubble);
       if (audioUrl) {
-        const audioEl = document.createElement('audio'); audioEl.controls = true; audioEl.src = audioUrl;
+        const audioEl = document.createElement('audio');
+        audioEl.controls = true;
+        // Use full path returned by backend
+        audioEl.src = API_BASE + audioUrl; 
         msg.appendChild(audioEl);
       }
-      chatDiv.appendChild(msg); chatDiv.scrollTop = chatDiv.scrollHeight;
+      chatDiv.appendChild(msg);
+      chatDiv.scrollTop = chatDiv.scrollHeight;
     }
 
     async function sendText(message) {
       if (!message) return;
-      statusDiv.textContent = 'Processing…'; addUserMessage(message); textInput.value = '';
-      const fd = new FormData(); fd.append('text', message); fd.append('lang', languageSelector.value);
+      statusDiv.textContent = 'Processing…';
+      addUserMessage(message);
+      textInput.value = '';
+
+      const fd = new FormData();
+      fd.append('text', message);
+      fd.append('lang', languageSelector.value);
+
       try {
-        const res = await fetch(API_URL, { method: 'POST', body: fd });
+        const res = await fetch(CHAT_URL, { method: 'POST', body: fd });
         const json = await res.json();
-        if (json.error) { addBotMessage('❌ ' + json.error); statusDiv.textContent = 'Error'; }
-        else { addBotMessage(json.reply, json.audio_url); statusDiv.textContent = 'Text received'; }
+        if (json.error) {
+          addBotMessage('❌ ' + json.error);
+          statusDiv.textContent = 'Error';
+        } else {
+          addBotMessage(json.reply, json.audio_url);
+          statusDiv.textContent = 'Text received';
+        }
       } catch (err) {
-        addBotMessage('❌ Network error'); statusDiv.textContent = 'Error';
+        addBotMessage('❌ Network error');
+        statusDiv.textContent = 'Error';
       }
     }
 
     async function sendAudio(formData, retries = 2) {
       statusDiv.textContent = 'Processing…';
       try {
-        const res = await fetch(API_URL, { method:'POST', body: formData });
+        const res = await fetch(CHAT_URL, { method:'POST', body: formData });
         const json = await res.json();
-        if (json.error) { addBotMessage('❌ ' + json.error); statusDiv.textContent = 'Error'; }
-        else { if (json.transcript) addUserMessage(json.transcript); addBotMessage(json.reply, json.audio_url); statusDiv.textContent = 'Audio received'; }
+        if (json.error) {
+          addBotMessage('❌ ' + json.error);
+          statusDiv.textContent = 'Error';
+        } else {
+          if (json.transcript) addUserMessage(json.transcript);
+          addBotMessage(json.reply, json.audio_url);
+          statusDiv.textContent = 'Audio received';
+        }
       } catch (err) {
         if (retries > 0) setTimeout(() => sendAudio(formData, retries-1), 1000);
-        else { addBotMessage('❌ Network error'); statusDiv.textContent = 'Error'; }
+        else {
+          addBotMessage('❌ Network error');
+          statusDiv.textContent = 'Error';
+        }
       }
     }
 
     function startRecording() {
       if (isRecording) return;
-      isRecording = true; micButton.classList.add('recording'); statusDiv.textContent = 'Recording…';
+      isRecording = true;
+      micButton.classList.add('recording');
+      statusDiv.textContent = 'Recording…';
       navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-        mediaRecorder = new MediaRecorder(stream, { mimeType:'audio/webm;codecs=opus' }); audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream, { mimeType:'audio/webm;codecs=opus' });
+        audioChunks = [];
         mediaRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
         mediaRecorder.onstop = () => {
           const blob = new Blob(audioChunks, { type:'audio/webm' });
-          const fd = new FormData(); fd.append('audio', blob, 'voice.webm'); fd.append('lang', languageSelector.value);
-          sendAudio(fd); micButton.classList.remove('recording'); isRecording = false;
+          const fd = new FormData();
+          fd.append('audio', blob, 'voice.webm');
+          fd.append('lang', languageSelector.value);
+          sendAudio(fd);
+          micButton.classList.remove('recording');
+          isRecording = false;
         };
         mediaRecorder.start();
       });
     }
 
-    function stopRecording() { if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop(); }
+    function stopRecording() {
+      if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+    }
 
     if (isMobile) {
-      micButton.removeEventListener('pointerdown', startRecording);
-      micButton.removeEventListener('pointerup', stopRecording);
-      micButton.removeEventListener('pointerleave', stopRecording);
       micButton.addEventListener('click', () => {
         if (!isRecording) startRecording(); else stopRecording();
       });
